@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Dil Dosti Cafe – Billing</title>
+<meta name="theme-color" content="#2a2420">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+/* Dil Dosti Cafe theme – cream paper, charcoal frame, red & blue cups */
+:root{--bg:#f3ead7;--card:#fffaf0;--ink:#2a2420;--mut:#7d705f;--brand:#c4372b;--brand2:#2c76a3;--free:#4e9a3f;--busy:#e98a24;--bill:#c4372b;--line:#e3d5b8;--soft:#f6e9cf;--dark:#2a2420;--hand:"Kalam","Segoe Print","Comic Sans MS",cursive}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:"Poppins",system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg) radial-gradient(circle at 20% 10%,#fbf4e4 0,transparent 55%);color:var(--ink);padding-bottom:72px;font-size:15px;background-attachment:fixed}
+header{background:var(--dark);color:#f8eedb;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:20;border-bottom:4px solid var(--brand);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.brandwrap{display:flex;align-items:center;gap:10px}
+.logo{width:46px;height:46px;flex:none}
+header h1{font-family:var(--hand);font-size:24px;margin:0;line-height:1;letter-spacing:.5px}
+header h1 b{color:#f2b134}
+header .tag{font-family:var(--hand);font-size:13px;color:#e9d8b5;opacity:.9}
+header .clock{font-size:12px;opacity:.85;text-align:right}
+h2,h3,.tcard .tn,.hand{font-family:var(--hand)}
+h2{font-size:24px!important}
+.ribbon{display:inline-block;color:#fff;font-family:var(--hand);font-weight:700;padding:2px 14px 2px 10px;border-radius:4px 14px 14px 4px;font-size:15px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:20}
+nav button{flex:1;border:0;background:none;padding:10px 0 12px;font-size:13px;color:var(--mut);font-weight:600}
+nav button.on{color:var(--brand);box-shadow:inset 0 3px 0 var(--brand)}
+nav span{display:block;font-size:20px}
+main{padding:14px;max-width:1100px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+h2{font-size:17px;margin:4px 0 12px}
+h3{font-size:15px;margin:16px 0 8px;color:var(--brand)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--mut);margin-bottom:10px;flex-wrap:wrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.tcard{background:var(--card);border-radius:14px;padding:14px;border-left:6px solid var(--free);box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer;min-height:96px}
+.tcard.busy{border-color:var(--busy)}.tcard.bill{border-color:var(--bill)}
+.tcard .tn{font-size:20px;font-weight:700}
+.tcard .st{font-size:12px;color:var(--mut);margin-top:2px}
+.tcard .amt{font-size:16px;font-weight:700;margin-top:8px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:600;font-size:14px;background:var(--brand);color:#fff;cursor:pointer}
+.btn.sec{background:var(--soft);color:var(--brand)}
+.btn.red{background:var(--bill)}.btn.grn{background:var(--free)}.btn.org{background:var(--busy)}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+.card{background:var(--card);border-radius:14px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:12px}
+/* order */
+.olay{display:grid;grid-template-columns:1fr 380px;gap:14px}
+@media(max-width:820px){.olay{grid-template-columns:1fr}}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:20px;padding:6px 12px;font-size:13px;white-space:nowrap;cursor:pointer}
+.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;user-select:none}
+.item:active{background:var(--soft)}
+.item .n{font-weight:600;font-size:14px;line-height:1.2}
+.item .p{color:var(--brand);font-weight:700;margin-top:4px}
+.vg{display:inline-block;width:9px;height:9px;border:1.5px solid var(--free);border-radius:2px;position:relative;margin-right:4px}
+.vg.nv{border-color:var(--bill)}
+.vg::after{content:"";position:absolute;inset:1.5px;border-radius:50%;background:var(--free)}
+.vg.nv::after{background:var(--bill)}
+.cart .ln{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.cart .ln .nm{flex:1;font-size:14px}
+.cart .ln .nm small{display:block;color:var(--mut);font-size:12px}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:17px;font-weight:700;color:var(--brand)}
+.tot{display:flex;justify-content:space-between;padding:3px 0;font-size:14px}
+.tot.g{font-size:19px;font-weight:800;border-top:2px solid var(--ink);margin-top:6px;padding-top:8px}
+.kotbadge{font-size:11px;background:var(--soft);color:var(--brand);border-radius:6px;padding:1px 5px;margin-left:4px}
+input,select,textarea{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff;width:100%}
+label{font-size:12px;color:var(--mut);display:block;margin:8px 0 3px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--mut);font-weight:600}
+td.r,th.r{text-align:right}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.stat{background:#fff;border-radius:12px;padding:12px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.stat b{display:block;font-size:20px;margin-top:4px}
+.stat small{color:var(--mut);font-size:12px}
+.bar{display:flex;align-items:center;gap:8px;font-size:12px;margin:3px 0}
+.bar i{display:block;height:14px;background:var(--brand2);border-radius:4px}
+.empty{color:var(--mut);text-align:center;padding:24px;font-size:14px}
+/* modal */
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.mbg.on{display:flex}
+.modal{background:#fff;width:100%;max-width:480px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:18px}
+@media(min-width:600px){.mbg{align-items:center}.modal{border-radius:18px}}
+.seg{display:flex;gap:6px}.seg button{flex:1;padding:10px;border:1px solid var(--line);background:#fff;border-radius:9px;font-weight:600}
+.seg button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:#2b2420;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;display:none;z-index:60}
+#print{display:none}
+@media print{
+  body{background:#fff;padding:0}
+  body>*:not(#print){display:none!important}
+  #print{display:block;width:72mm;font-family:"Courier New",monospace;font-size:12px;color:#000}
+  #print .c{text-align:center}#print hr{border:0;border-top:1px dashed #000}
+  #print table{font-size:12px}#print td,#print th{padding:2px 0;border:0}
+  @page{margin:3mm}
+}
+/* ---- theme overrides ---- */
+.olay>*{min-width:0}
+.items{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+.tcard{min-height:84px}
+nav{background:var(--dark);border-top:3px solid var(--brand)}
+nav button{color:#cbbb9c}
+nav button.on{color:#fff;box-shadow:inset 0 3px 0 #f2b134}
+.card,.stat{background:var(--card);border:1px solid var(--line);box-shadow:0 2px 6px rgba(80,55,20,.08)}
+.tcard{background:var(--card);border:1px solid var(--line);border-left-width:7px;position:relative;overflow:hidden;box-shadow:0 2px 6px rgba(80,55,20,.10)}
+.tcard .tn{font-size:26px;line-height:1}
+.tcard::after{content:"♥";position:absolute;right:10px;top:6px;font-size:16px;color:var(--line)}
+.tcard.busy::after{color:var(--busy)}.tcard.bill::after{color:var(--bill)}
+.btn{font-family:inherit}
+.btn.sec{background:var(--soft);color:var(--dark);border:1px solid var(--line)}
+.btn:not(.sec):not(.grn):not(.org):not(.red){background:var(--dark)}
+.chip{background:var(--card);font-weight:600;border-width:2px}
+.chip.on{color:#fff}
+.item{background:var(--card);border-left:5px solid var(--cc,var(--brand))}
+.item .p{color:var(--ink)}
+.item .p::after{content:"/-";font-weight:400;color:var(--mut)}
+.cart{border-top:5px solid var(--brand)}
+.tot.g{color:var(--brand)}
+.seg button.on{background:var(--dark);border-color:var(--dark)}
+.modal{background:var(--card);border-top:5px solid var(--brand)}
+.mbg.on .modal h2{margin-top:0}
+.catblock{border-left:5px solid var(--cc);padding-left:10px;margin-top:12px}
+.footline{text-align:center;font-family:var(--hand);color:var(--mut);margin:18px 0 6px;font-size:16px}
+.footline span{color:var(--brand)}
+input:focus,select:focus{outline:2px solid var(--brand2);outline-offset:0}
+.syncpill{display:none;margin-top:3px;font-size:11px;font-weight:600;border-radius:10px;padding:2px 8px;background:#3b332d;color:#e9d8b5;cursor:pointer}
+.syncpill.on{display:inline-block}.syncpill.ok{color:#7fe07f}.syncpill.bad{color:#ff9b8f}
+.toast{bottom:auto;top:76px;font-size:15px;padding:12px 18px;max-width:90%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+textarea{font:12px monospace;padding:9px 10px;border:1px solid var(--line);border-radius:9px;width:100%;min-height:110px}
+.steps{padding-left:20px;font-size:13px}.steps li{margin:4px 0}
+code{background:var(--soft);padding:1px 5px;border-radius:5px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brandwrap">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="31" fill="#f3ead7"/>
+      <circle cx="32" cy="32" r="27.5" fill="#2a2420"/>
+      <circle cx="32" cy="32" r="25" fill="none" stroke="#e9d8b5" stroke-width="1" stroke-dasharray="2 2"/>
+      <path d="M32 19c-2-3.5-7-2.5-7 1.2 0 3 4 5.3 7 7.8 3-2.5 7-4.8 7-7.8 0-3.7-5-4.7-7-1.2z" fill="#c4372b"/>
+      <g transform="rotate(-12 22 40)"><rect x="13" y="31" width="16" height="15" rx="3" fill="#c4372b"/><path d="M13 35h-3a3 3 0 0 0 0 7h3" fill="none" stroke="#c4372b" stroke-width="2.4"/><rect x="13" y="31" width="16" height="3" fill="#e9d8b5"/></g>
+      <g transform="rotate(12 42 40)"><rect x="35" y="31" width="16" height="15" rx="3" fill="#2c76a3"/><path d="M51 35h3a3 3 0 0 1 0 7h-3" fill="none" stroke="#2c76a3" stroke-width="2.4"/><rect x="35" y="31" width="16" height="3" fill="#e9d8b5"/></g>
+      <path d="M20 52h24" stroke="#f2b134" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <div><h1 id="hName">Dil Dosti <b>Cafe</b></h1><div class="tag" id="hTag">Good Food · Good Mood</div></div>
+  </div>
+  <div style="text-align:right"><div class="clock" id="clock"></div><div class="syncpill" id="syncPill" onclick="go('settings')"></div></div>
+</header>
+
+<main>
+  <!-- TABLES -->
+  <section class="view on" id="v-tables">
+    <div id="syncWarn" class="card" style="display:none;border:2px solid var(--bill);background:#fdecea" onclick="go('settings')"><b style="color:var(--bill)">⚠ This phone is not synced</b><br><span style="font-size:13px">Tables and bills on this phone are NOT shared with other phones. Tap here → Settings → 🔄 Sync between phones.</span></div>
+    <div class="row" style="margin-bottom:8px"><h2 class="sp">Tables</h2><button class="btn org sm" onclick="newParcel()">+ Parcel / Takeaway</button></div>
+    <div class="legend"><span><i class="dot" style="background:var(--free)"></i>Free</span><span><i class="dot" style="background:var(--busy)"></i>Ordering</span><span><i class="dot" style="background:var(--bill)"></i>Bill printed</span></div>
+    <div class="grid" id="tableGrid"></div>
+    <div id="todayMini" class="card" style="margin-top:14px"></div>
+    <div class="footline">Good Food <span>♥</span> Fresh Ingredients <span>♥</span> Happy Moments</div>
+  </section>
+
+  <!-- ORDER -->
+  <section class="view" id="v-order">
+    <div class="row" style="margin-bottom:10px">
+      <button class="btn sec sm" onclick="closeOrder()">← Tables</button>
+      <h2 class="sp" id="oTitle" style="margin:0 6px"></h2>
+      <button class="btn sec sm" onclick="moveDialog()">Move / Merge</button>
+    </div>
+    <div class="olay">
+      <div>
+        <input id="search" placeholder="Search item…" oninput="renderItems()" style="margin-bottom:8px">
+        <div class="chips" id="chips"></div>
+        <div class="items" id="itemGrid"></div>
+      </div>
+      <div class="card cart" style="align-self:start;position:sticky;top:64px">
+        <div class="row"><b class="sp">Order</b><small id="oTime" style="color:var(--mut)"></small></div>
+        <div id="cartLines"></div>
+        <div id="cartTot" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn org" style="flex:1" onclick="printKOT()">🍳 KOT</button>
+          <button class="btn" style="flex:1" onclick="billDialog()">🧾 Bill</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORTS -->
+  <section class="view" id="v-reports">
+    <h2>Reports</h2>
+    <div class="card">
+      <div class="f2">
+        <div><label>From</label><input type="date" id="rFrom" onchange="renderReports()"></div>
+        <div><label>To</label><input type="date" id="rTo" onchange="renderReports()"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn sec sm" onclick="setRange(0)">Today</button>
+        <button class="btn sec sm" onclick="setRange(1)">Yesterday</button>
+        <button class="btn sec sm" onclick="setRange(7)">Last 7 days</button>
+        <button class="btn sec sm" onclick="setRange('m')">This month</button>
+      </div>
+    </div>
+    <div id="repBody"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="v-settings"><div id="setBody"></div></section>
+</main>
+
+<nav>
+  <button class="on" data-v="tables" onclick="go('tables')"><span>🍽️</span>Tables</button>
+  <button data-v="reports" onclick="go('reports')"><span>📊</span>Reports</button>
+  <button data-v="settings" onclick="go('settings')"><span>⚙️</span>Settings</button>
+</nav>
+
+<div class="mbg" id="mbg" onclick="if(event.target===this)closeModal()"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+<div id="print"></div>
+<input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restore(event)">
+
+<script>
+/* ================= DATA ================= */
+const LS='dilDostiCafeV1';
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+/* category ribbon colours – same as the menu card */
+const CAT_COLORS={'Tea & Coffee':'#d9472f','Sandwich':'#4e9a3f','Burger':'#e98a24','Pizza':'#c4372b','Maggie':'#f0a028','Pasta':'#7b4fa8',
+  "Momo's":'#2c8fa8','Fries':'#d94a5a','Shakes':'#3b86c9','Chocolate Shakes':'#6b4330','Mocktail':'#3f9a55','Ice Tea':'#8a5cc0'};
+const PAL=['#c4372b','#2c76a3','#4e9a3f','#e98a24','#7b4fa8','#2c8fa8','#d94a5a','#6b4330'];
+function catColor(c){if(CAT_COLORS[c])return CAT_COLORS[c];let h=0;for(const ch of String(c))h=(h*31+ch.charCodeAt(0))>>>0;return PAL[h%PAL.length]}
+function defaults(){
+  const M=[];const add=(cat,list)=>list.forEach(([n,p])=>M.push({id:uid(),name:n,cat,price:p,veg:true,avail:true}));
+  add('Tea & Coffee',[['Tea',10],['Hot Coffee',20],['Cold Coffee',90],['Thick Cold Coffee',120]]);
+  add('Sandwich',[['Chocolate Sandwich',49],['Veg Grilled Sandwich',59],['Veg Cheese Grilled Sandwich',89],['Paneer Tikka Sandwich',120],['Special Sandwich',180]]);
+  add('Burger',[['Veg Cheese Burger',89],['Schezwan Burger',89],['Veg Paneer Burger',99]]);
+  add('Pizza',[['Margherita Pizza',90],['Cheese & Corn Pizza',120],['Vegetable Pizza',150],['Paneer Tandoori Pizza',180],['Spicy Paneer Pizza',180],['Cheese Burst Pizza',220]]);
+  add('Maggie',[['Plain Maggie',49],['Schezwan Maggie',59],['Cheese Maggie',69],['Vegetable Maggie',89]]);
+  add('Pasta',[['Red Sauce Pasta',110],['White Sauce Pasta',150],['Pink Sauce Pasta',160]]);
+  add("Momo's",[['Veg Momos',80],['Paneer Tikka Momos',90],['Peri Peri Momos',90]]);
+  add('Fries',[['French Fries',69],['Masala French Fries',79],['Tandoori Mayonnaise Fries',89],['Cheese Fries',99],['Peri-Peri Fries',79]]);
+  add('Shakes',[['Pineapple Shake',100],['Strawberry Shake',100],['Mango Shake',100],['Pina Colada',150]]);
+  add('Chocolate Shakes',[['Chocolate Shake',130],['Kit Kat Shake',130],['Oreo Shake',130]]);
+  add('Mocktail',[['Mojito',110],['Blue Sky at Beach',140],['Green Apple',110]]);
+  add('Ice Tea',[['Lemon Ice Tea',90],['Peach Ice Tea',90]]);
+  return{
+    settings:{name:'Dil Dosti Cafe',tagline:'Good Food · Good Mood',address:'',phone:'',gstin:'',footer:'Eat · Drink · Be Happy ♥',gst:0,gstSplit:true,tables:10,pin:'1234',prefix:'DDC'},
+    menu:M,orders:{},bills:[],voids:[],billSeq:0,parcelSeq:0
+  };
+}
+function load(){let s=null;try{s=JSON.parse(localStorage.getItem(LS))}catch(e){}if(!s||!s.settings)s=defaults();
+  s.menu.forEach((m,i)=>{if(m.ord==null)m.ord=i+1});s.orders=s.orders||{};s.bills=s.bills||[];s.voids=s.voids||[];return s}
+let S=load();
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){toast('⚠ Could not save data on this browser')}}
+function save(){saveLocal();pushSync()}
+
+/* ================= HELPERS ================= */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'₹'+(Math.round(n*100)/100).toFixed(2);
+const r2=n=>Math.round(n*100)/100;
+const pad=n=>String(n).padStart(2,'0');
+function fmtDT(ts){const d=new Date(ts);return pad(d.getDate())+'-'+pad(d.getMonth()+1)+'-'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
+function dKey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function toast(t){const e=$('toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',2200)}
+function showModal(h){$('modal').innerHTML=h;$('mbg').classList.add('on')}
+function closeModal(){$('mbg').classList.remove('on')}
+function tableLabel(k){return k[0]==='T'?'Table '+k.slice(1):'Parcel #'+k.slice(1)}
+function cats(){return [...new Set(S.menu.map(m=>m.cat))]}
+function setHeader(){
+  const w=String(S.settings.name).trim().split(' '),last=w.length>1?w.pop():'';
+  $('hName').innerHTML=esc(w.join(' '))+(last?' <b>'+esc(last)+'</b>':'');
+  $('hTag').textContent=S.settings.tagline||'';
+  document.title=S.settings.name+' – Billing';
+}
+const gstOn=()=>(+S.settings.gst||0)>0;
+
+function calc(o){
+  const sub=r2(o.items.reduce((a,l)=>a+l.price*l.qty,0));
+  const dv=+o.disc?.v||0;
+  let disc=o.disc?.t==='%'?sub*dv/100:dv; disc=r2(Math.min(disc,sub));
+  const taxable=r2(sub-disc);
+  const gst=+S.settings.gst||0;
+  const tax=r2(taxable*gst/100);
+  const raw=taxable+tax, grand=Math.round(raw), round=r2(grand-raw);
+  return{sub,disc,taxable,gst,tax,round,grand};
+}
+
+/* ================= NAV ================= */
+let unlocked=false;
+function go(v){
+  if(v==='settings'&&!unlocked){pinDialog();return}
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));
+  $('v-'+v).classList.add('on');
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v==='tables')renderTables();
+  if(v==='reports')renderReports();
+  if(v==='settings')renderSettings();
+  window.scrollTo(0,0);
+}
+function pinDialog(){
+  showModal(`<h2>🔒 Owner PIN</h2><input id="pinIn" type="password" inputmode="numeric" placeholder="Enter PIN" onkeydown="if(event.key==='Enter')checkPin()">
+  <div class="row" style="margin-top:12px"><span class="sp" style="font-size:12px;color:var(--mut)">Default PIN: 1234 (change in Settings)</span><button class="btn" onclick="checkPin()">Open</button></div>`);
+  setTimeout(()=>$('pinIn').focus(),50);
+}
+function checkPin(){if($('pinIn').value===String(S.settings.pin)){unlocked=true;closeModal();go('settings')}else toast('Wrong PIN')}
+
+/* ================= TABLES ================= */
+function status(k){const o=S.orders[k];if(!o||!o.items.length)return'free';return o.billPrinted?'bill':'busy'}
+function renderTables(){
+  setHeader();
+  const keys=[];for(let i=1;i<=S.settings.tables;i++)keys.push('T'+i);
+  Object.keys(S.orders).filter(k=>k[0]==='P').forEach(k=>keys.push(k));
+  $('tableGrid').innerHTML=keys.map(k=>{
+    const st=status(k),o=S.orders[k];
+    const mins=o&&o.items.length?Math.floor((Date.now()-o.start)/60000):0;
+    const items=o?o.items.reduce((a,l)=>a+l.qty,0):0;
+    return`<div class="tcard ${st}" onclick="openOrder('${k}')">
+      <div class="tn">${k[0]==='T'?'T'+k.slice(1):'🛍 P'+k.slice(1)}</div>
+      <div class="st">${st==='free'?'Free':(items+' items · '+mins+' min')}</div>
+      <div class="amt">${st==='free'?'&nbsp;':money(calc(o).grand)}</div></div>`}).join('');
+  const t=dKey(new Date()),tb=S.bills.filter(b=>dKey(new Date(b.ts))===t);
+  const running=Object.values(S.orders).filter(o=>o.items.length).reduce((a,o)=>a+calc(o).grand,0);
+  $('todayMini').innerHTML=`<div class="row"><div class="sp"><small style="color:var(--mut)">Today's settled sales</small><div style="font-size:20px;font-weight:800">${money(tb.reduce((a,b)=>a+b.grand,0))}</div><small style="color:var(--mut)">${tb.length} bills</small></div>
+  <div style="text-align:right"><small style="color:var(--mut)">Running on tables</small><div style="font-size:18px;font-weight:700;color:var(--busy)">${money(running)}</div></div></div>`;
+}
+async function newParcel(){const n=await nextSeq('parcelSeq');const k='P'+n;S.orders[k]={items:[],start:Date.now(),disc:{t:'%',v:0}};openOrder(k)}
+
+/* ================= ORDER ================= */
+let cur=null,curCat='All';
+function openOrder(k){
+  cur=k;if(!S.orders[k])S.orders[k]={items:[],start:Date.now(),disc:{t:'%',v:0}};
+  $('oTitle').textContent=tableLabel(k);$('search').value='';
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));$('v-order').classList.add('on');
+  renderChips();renderItems();renderCart();window.scrollTo(0,0);
+}
+function closeOrder(){
+  const o=S.orders[cur];if(o&&!o.items.length)delete S.orders[cur];
+  save();cur=null;go('tables');
+}
+function renderChips(){
+  $('chips').innerHTML=['All',...cats()].map(c=>{const col=c==='All'?'#2a2420':catColor(c);return`<div class="chip ${c===curCat?'on':''}" style="border-color:${col};${c===curCat?'background:'+col:'color:'+col}" onclick="curCat='${esc(c).replace(/'/g,"\\'")}';renderChips();renderItems()">${esc(c)}</div>`}).join('');
+}
+function renderItems(){
+  const q=$('search').value.trim().toLowerCase();
+  const list=S.menu.filter(m=>m.avail&&(curCat==='All'||m.cat===curCat)&&(!q||m.name.toLowerCase().includes(q)));
+  $('itemGrid').innerHTML=list.length?list.map(m=>`<div class="item" style="--cc:${catColor(m.cat)}" onclick="addItem('${m.id}')"><div class="n"><i class="vg ${m.veg?'':'nv'}"></i>${esc(m.name)}</div><div class="p">₹${m.price}</div></div>`).join(''):'<div class="empty">No items</div>';
+}
+function addItem(mid){
+  const o=S.orders[cur],m=S.menu.find(x=>x.id===mid);if(!m)return;
+  if(!o.items.length)o.start=Date.now();
+  const l=o.items.find(x=>x.mid===mid&&!x.note&&x.price===m.price);
+  if(l)l.qty++;else o.items.push({id:uid(),mid,name:m.name,price:m.price,qty:1,note:'',kot:0});
+  o.billPrinted=false;save();renderCart();
+}
+function qty(lid,d){
+  const o=S.orders[cur],l=o.items.find(x=>x.id===lid);if(!l)return;
+  if(d<0&&l.qty<=l.kot){
+    const reason=prompt(`"${l.name}" was already sent to kitchen.\nReason for cancelling 1 qty?`);
+    if(reason===null)return;
+    S.voids.push({id:uid(),ts:Date.now(),table:tableLabel(cur),name:l.name,qty:1,price:l.price,reason:reason||'—'});
+  }
+  l.qty+=d;if(l.kot>l.qty)l.kot=l.qty;
+  if(l.qty<=0)o.items=o.items.filter(x=>x.id!==lid);
+  o.billPrinted=false;save();renderCart();
+}
+function noteLine(lid){
+  const l=S.orders[cur].items.find(x=>x.id===lid);const n=prompt('Note for kitchen (e.g. less sugar, no onion):',l.note);
+  if(n===null)return;l.note=n.trim();save();renderCart();
+}
+function renderCart(){
+  const o=S.orders[cur];
+  $('oTime').textContent=o.items.length?'Since '+fmtDT(o.start).slice(11):'';
+  $('cartLines').innerHTML=o.items.length?o.items.map(l=>`<div class="ln">
+    <div class="nm">${esc(l.name)}${l.kot>=l.qty?'<span class="kotbadge">KOT ✓</span>':''}
+      <small>${money(l.price)} × ${l.qty} = <b>${money(l.price*l.qty)}</b></small>
+      <small onclick="noteLine('${l.id}')" style="color:var(--brand2);cursor:pointer">${l.note?'📝 '+esc(l.note):'+ add note'}</small></div>
+    <div class="qty"><button onclick="qty('${l.id}',-1)">−</button><b>${l.qty}</b><button onclick="qty('${l.id}',1)">+</button></div></div>`).join('')
+    :'<div class="empty">Tap items to add</div>';
+  const c=calc(o);
+  $('cartTot').innerHTML=o.items.length?`<div class="tot"><span>Subtotal</span><span>${money(c.sub)}</span></div>
+   ${c.disc?`<div class="tot"><span>Discount</span><span>−${money(c.disc)}</span></div>`:''}
+   ${gstOn()?`<div class="tot"><span>GST ${c.gst}%</span><span>${money(c.tax)}</span></div>`:''}
+   <div class="tot g"><span>Total</span><span>${money(c.grand)}</span></div>`:'';
+}
+
+/* ---- Move / merge ---- */
+function moveDialog(){
+  const o=S.orders[cur];if(!o.items.length){toast('No items to move');return}
+  let opts='';for(let i=1;i<=S.settings.tables;i++){const k='T'+i;if(k!==cur)opts+=`<option value="${k}">Table ${i} ${status(k)==='free'?'(free)':'(occupied – will merge)'}</option>`}
+  showModal(`<h2>Move / Merge ${tableLabel(cur)}</h2><label>Move all items to</label><select id="mvTo">${opts}</select>
+  <div class="row" style="margin-top:14px"><span class="sp"></span><button class="btn sec" onclick="closeModal()">Cancel</button><button class="btn" onclick="doMove()">Move</button></div>`);
+}
+function doMove(){
+  const to=$('mvTo').value,from=S.orders[cur];
+  if(S.orders[to]&&S.orders[to].items.length){S.orders[to].items.push(...from.items);S.orders[to].start=Math.min(S.orders[to].start,from.start);S.orders[to].billPrinted=false}
+  else S.orders[to]=from;
+  delete S.orders[cur];save();closeModal();toast('Moved to '+tableLabel(to));openOrder(to);
+}
+
+/* ---- KOT ---- */
+function printKOT(){
+  const o=S.orders[cur];const pend=o.items.filter(l=>l.qty>l.kot);
+  if(!pend.length){toast('No new items for kitchen');return}
+  $('print').innerHTML=`<div class="c"><b>KITCHEN ORDER (KOT)</b><br>${esc(tableLabel(cur))}<br>${fmtDT(Date.now())}</div><hr>
+   <table>${pend.map(l=>`<tr><td><b>${l.qty-l.kot}</b> × ${esc(l.name)}${l.note?'<br>&nbsp;&nbsp;→ '+esc(l.note):''}</td></tr>`).join('')}</table><hr>`;
+  pend.forEach(l=>l.kot=l.qty);save();renderCart();setTimeout(()=>window.print(),100);
+}
+
+/* ---- Bill ---- */
+let payMode='Cash';
+function billDialog(){
+  const o=S.orders[cur];if(!o.items.length){toast('Add items first');return}
+  payMode='Cash';drawBill();
+}
+function drawBill(){
+  const o=S.orders[cur],c=calc(o);
+  showModal(`<h2>🧾 Bill – ${tableLabel(cur)}</h2>
+  <table>${o.items.map(l=>`<tr><td>${esc(l.name)} × ${l.qty}</td><td class="r">${money(l.price*l.qty)}</td></tr>`).join('')}</table>
+  <label>Discount</label>
+  <div class="row"><div class="seg" style="width:120px"><button class="${o.disc.t==='%'?'on':''}" onclick="setDisc('t','%')">%</button><button class="${o.disc.t==='₹'?'on':''}" onclick="setDisc('t','₹')">₹</button></div>
+  <input type="number" min="0" style="flex:1" value="${o.disc.v||''}" placeholder="0" onchange="setDisc('v',this.value)"></div>
+  <div style="margin-top:10px">
+   <div class="tot"><span>Subtotal</span><span>${money(c.sub)}</span></div>
+   ${c.disc?`<div class="tot"><span>Discount</span><span>−${money(c.disc)}</span></div>`:''}
+   ${!gstOn()?'':S.settings.gstSplit?`<div class="tot"><span>CGST ${c.gst/2}%</span><span>${money(c.tax/2)}</span></div><div class="tot"><span>SGST ${c.gst/2}%</span><span>${money(c.tax/2)}</span></div>`:`<div class="tot"><span>GST ${c.gst}%</span><span>${money(c.tax)}</span></div>`}
+   ${c.round?`<div class="tot"><span>Round off</span><span>${c.round>0?'+':''}${c.round.toFixed(2)}</span></div>`:''}
+   <div class="tot g"><span>Grand Total</span><span>${money(c.grand)}</span></div></div>
+  <label>Payment mode</label>
+  <div class="seg">${['Cash','UPI','Card','Split'].map(m=>`<button class="${payMode===m?'on':''}" onclick="payMode='${m}';drawBill()">${m}</button>`).join('')}</div>
+  ${payMode==='Split'?`<div class="f2"><div><label>Cash ₹</label><input type="number" id="spCash" oninput="$('spUpi').value=Math.max(0,${c.grand}-(+this.value||0))"></div><div><label>UPI ₹</label><input type="number" id="spUpi" value="${c.grand}"></div></div>`:''}
+  <div class="row" style="margin-top:16px">
+   <button class="btn sec" onclick="printBill()">🖨 Print</button>
+   <button class="btn sec" onclick="waBill()">💬 WhatsApp</button>
+   <span class="sp"></span>
+   <button class="btn grn" onclick="settle()">✔ Paid & Close</button></div>`);
+}
+function setDisc(f,v){const o=S.orders[cur];o.disc[f]=f==='v'?(+v||0):v;o.billPrinted=false;save();renderCart();drawBill()}
+async function nextBillNo(){const n=await nextSeq('billSeq');return S.settings.prefix+'-'+new Date().getFullYear()+'-'+String(n).padStart(4,'0')}
+function receiptHTML(b){
+  const s=S.settings;
+  return`<div class="c"><b style="font-size:16px">♥ ${esc(s.name).toUpperCase()} ♥</b>${s.tagline?'<br><i>'+esc(s.tagline)+'</i>':''}${s.address?'<br>'+esc(s.address):''}${s.phone?'<br>Ph: '+esc(s.phone):''}${s.gstin?'<br>GSTIN: '+esc(s.gstin):''}</div><hr>
+  Bill: ${esc(b.no||'(not settled)')}<br>${esc(b.table)} &nbsp; ${fmtDT(b.ts)}<hr>
+  <table><tr><th>Item</th><th class="r">Qty</th><th class="r">Amt</th></tr>
+  ${b.items.map(l=>`<tr><td>${esc(l.name)}</td><td class="r">${l.qty}</td><td class="r">${(l.price*l.qty).toFixed(2)}</td></tr>`).join('')}</table><hr>
+  <table><tr><td>Subtotal</td><td class="r">${b.sub.toFixed(2)}</td></tr>
+  ${b.disc?`<tr><td>Discount</td><td class="r">-${b.disc.toFixed(2)}</td></tr>`:''}
+  ${!b.gst?'':s.gstSplit?`<tr><td>CGST ${b.gst/2}%</td><td class="r">${(b.tax/2).toFixed(2)}</td></tr><tr><td>SGST ${b.gst/2}%</td><td class="r">${(b.tax/2).toFixed(2)}</td></tr>`:`<tr><td>GST ${b.gst}%</td><td class="r">${b.tax.toFixed(2)}</td></tr>`}
+  ${b.round?`<tr><td>Round off</td><td class="r">${b.round.toFixed(2)}</td></tr>`:''}
+  <tr><td><b>TOTAL</b></td><td class="r"><b>₹${b.grand.toFixed(2)}</b></td></tr></table><hr>
+  ${b.pay?'Paid by: '+esc(b.pay)+'<br>':''}<div class="c">${esc(s.footer)}</div>`;
+}
+function draftBill(){const o=S.orders[cur],c=calc(o);return{no:o.billNo||'',ts:Date.now(),table:tableLabel(cur),items:o.items.map(l=>({name:l.name,price:l.price,qty:l.qty})),...c}}
+async function printBill(){
+  const o=S.orders[cur];if(!o.billNo){o.billNo=await nextBillNo()}o.billPrinted=true;save();
+  $('print').innerHTML=receiptHTML(draftBill());setTimeout(()=>window.print(),100);
+}
+function waBill(){
+  const b=draftBill(),s=S.settings;
+  let t=`*${s.name}*\n${b.table} | ${fmtDT(b.ts)}\n------------------\n`;
+  b.items.forEach(l=>t+=`${l.name} x${l.qty} = ₹${(l.price*l.qty).toFixed(2)}\n`);
+  t+=`------------------\nSubtotal: ₹${b.sub.toFixed(2)}\n`;if(b.disc)t+=`Discount: -₹${b.disc.toFixed(2)}\n`;
+  if(b.gst)t+=`GST ${b.gst}%: ₹${b.tax.toFixed(2)}\n`;
+  t+=`*Total: ₹${b.grand.toFixed(2)}*\n\n${s.footer}`;
+  window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');
+}
+async function settle(){
+  const o=S.orders[cur],b=draftBill();b.pay=payMode;
+  if(payMode==='Split'){const ca=+$('spCash').value||0,up=+$('spUpi').value||0;
+    if(Math.abs(ca+up-b.grand)>0.5){toast('Cash + UPI must equal '+money(b.grand));return}
+    b.split={Cash:ca,UPI:up};b.pay=`Split (Cash ₹${ca}, UPI ₹${up})`}
+  b.mode=payMode;
+  b.no=o.billNo||await nextBillNo();
+  S.bills.push(b);delete S.orders[cur];save();closeModal();
+  if(confirm('Bill '+b.no+' settled ✔\nPrint final bill?')){$('print').innerHTML=receiptHTML(b);setTimeout(()=>window.print(),100)}
+  cur=null;go('tables');
+}
+
+/* ================= REPORTS ================= */
+function setRange(x){
+  const t=new Date();let f=new Date(t),to=new Date(t);
+  if(x===1){f.setDate(f.getDate()-1);to=new Date(f)}
+  else if(x===7)f.setDate(f.getDate()-6);
+  else if(x==='m')f=new Date(t.getFullYear(),t.getMonth(),1);
+  $('rFrom').value=dKey(f);$('rTo').value=dKey(to);renderReports();
+}
+function rangeBills(){
+  const f=$('rFrom').value,t=$('rTo').value;
+  return S.bills.filter(b=>{const k=dKey(new Date(b.ts));return k>=f&&k<=t});
+}
+function renderReports(){
+  if(!$('rFrom').value){const d=dKey(new Date());$('rFrom').value=d;$('rTo').value=d}
+  const bs=rangeBills();
+  if(!bs.length){$('repBody').innerHTML='<div class="empty">No settled bills in this period</div>'+voidsHTML();return}
+  const sum=k=>bs.reduce((a,b)=>a+b[k],0);
+  const pm={Cash:0,UPI:0,Card:0};
+  bs.forEach(b=>{if(b.split){pm.Cash+=b.split.Cash;pm.UPI+=b.split.UPI}else pm[b.mode]=(pm[b.mode]||0)+b.grand});
+  const it={};bs.forEach(b=>b.items.forEach(l=>{it[l.name]=it[l.name]||{q:0,a:0};it[l.name].q+=l.qty;it[l.name].a+=l.qty*l.price}));
+  const top=Object.entries(it).sort((a,b)=>b[1].a-a[1].a);
+  const hr={};bs.forEach(b=>{const h=new Date(b.ts).getHours();hr[h]=(hr[h]||0)+b.grand});
+  const maxH=Math.max(...Object.values(hr));
+  $('repBody').innerHTML=`
+  <div class="stats">
+   <div class="stat"><small>Total sales</small><b>${money(sum('grand'))}</b></div>
+   <div class="stat"><small>Bills</small><b>${bs.length}</b></div>
+   <div class="stat"><small>Average bill</small><b>${money(sum('grand')/bs.length)}</b></div>
+   <div class="stat"><small>GST collected</small><b>${money(sum('tax'))}</b></div>
+   <div class="stat"><small>Discount given</small><b>${money(sum('disc'))}</b></div>
+   <div class="stat"><small>💵 Cash</small><b>${money(pm.Cash)}</b></div>
+   <div class="stat"><small>📱 UPI</small><b>${money(pm.UPI)}</b></div>
+   <div class="stat"><small>💳 Card</small><b>${money(pm.Card)}</b></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h3 style="margin-top:0">Item-wise sales</h3>
+   <table><tr><th>Item</th><th class="r">Qty</th><th class="r">Amount</th></tr>${top.map(([n,v])=>`<tr><td>${esc(n)}</td><td class="r">${v.q}</td><td class="r">${money(v.a)}</td></tr>`).join('')}</table></div>
+  <div class="card"><h3 style="margin-top:0">Sales by hour</h3>
+   ${Object.keys(hr).sort((a,b)=>a-b).map(h=>`<div class="bar"><span style="width:52px">${pad(h)}:00</span><i style="width:${Math.max(4,hr[h]/maxH*70)}%"></i><span>${money(hr[h])}</span></div>`).join('')}</div>
+  <div class="card"><h3 style="margin-top:0">Bills</h3>
+   <table><tr><th>Bill no</th><th>Table</th><th>Time</th><th>Mode</th><th class="r">Total</th></tr>
+   ${bs.slice().reverse().map(b=>`<tr onclick="reprint('${b.no}')" style="cursor:pointer"><td>${esc(b.no)}</td><td>${esc(b.table)}</td><td>${fmtDT(b.ts).slice(0,16)}</td><td>${esc(b.mode)}</td><td class="r">${money(b.grand)}</td></tr>`).join('')}</table>
+   <small style="color:var(--mut)">Tap a bill to view / reprint</small></div>
+  ${voidsHTML()}
+  <div class="row"><button class="btn" onclick="exportBills()">⬇ Bills (Excel CSV)</button><button class="btn sec" onclick="exportItems()">⬇ Item sales (CSV)</button></div>`;
+}
+function voidsHTML(){
+  const f=$('rFrom').value,t=$('rTo').value;
+  const vs=S.voids.filter(v=>{const k=dKey(new Date(v.ts));return k>=f&&k<=t});
+  if(!vs.length)return'';
+  return`<div class="card"><h3 style="margin-top:0;color:var(--bill)">Cancelled after KOT (${vs.length})</h3>
+  <table><tr><th>Time</th><th>Table</th><th>Item</th><th>Reason</th><th class="r">Value</th></tr>${vs.map(v=>`<tr><td>${fmtDT(v.ts).slice(11)}</td><td>${esc(v.table)}</td><td>${esc(v.name)}</td><td>${esc(v.reason)}</td><td class="r">${money(v.price*v.qty)}</td></tr>`).join('')}</table></div>`;
+}
+function reprint(no){
+  const b=S.bills.find(x=>x.no===no);if(!b)return;
+  showModal(`<div style="font-family:monospace;font-size:13px">${receiptHTML(b)}</div><div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn sec" onclick="closeModal()">Close</button><button class="btn" onclick="$('print').innerHTML=receiptHTML(S.bills.find(x=>x.no==='${no}'));window.print()">🖨 Reprint</button></div>`);
+}
+function dl(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+const csvq=v=>'"'+String(v).replace(/"/g,'""')+'"';
+function exportBills(){
+  const rows=[['Bill No','Date','Time','Table','Items','Subtotal','Discount','GST','Round off','Total','Payment']];
+  rangeBills().forEach(b=>{const d=fmtDT(b.ts);rows.push([b.no,d.slice(0,10),d.slice(11),b.table,b.items.map(l=>l.name+' x'+l.qty).join('; '),b.sub,b.disc,b.tax,b.round,b.grand,b.pay])});
+  dl(`bills_${$('rFrom').value}_to_${$('rTo').value}.csv`,'\ufeff'+rows.map(r=>r.map(csvq).join(',')).join('\n'),'text/csv');
+}
+function exportItems(){
+  const it={};rangeBills().forEach(b=>b.items.forEach(l=>{it[l.name]=it[l.name]||{q:0,a:0};it[l.name].q+=l.qty;it[l.name].a+=l.qty*l.price}));
+  const rows=[['Item','Qty','Amount'],...Object.entries(it).map(([n,v])=>[n,v.q,r2(v.a)])];
+  dl(`items_${$('rFrom').value}_to_${$('rTo').value}.csv`,'\ufeff'+rows.map(r=>r.map(csvq).join(',')).join('\n'),'text/csv');
+}
+
+/* ================= SETTINGS ================= */
+function renderSettings(){
+  const s=S.settings;
+  const byCat={};S.menu.forEach(m=>(byCat[m.cat]=byCat[m.cat]||[]).push(m));
+  $('setBody').innerHTML=`<div class="row"><h2 class="sp">Master Settings</h2><button class="btn sec sm" onclick="unlocked=false;go('tables')">🔒 Lock</button></div>
+  <div class="card"><h3 style="margin-top:0">Cafe details (printed on bill)</h3>
+   <label>Cafe name</label><input id="sName" value="${esc(s.name)}">
+   <label>Tagline</label><input id="sTag" value="${esc(s.tagline||'')}">
+   <label>Address</label><input id="sAddr" value="${esc(s.address)}">
+   <div class="f2"><div><label>Phone</label><input id="sPhone" value="${esc(s.phone)}"></div><div><label>GSTIN</label><input id="sGstin" value="${esc(s.gstin)}"></div></div>
+   <label>Bill footer message</label><input id="sFooter" value="${esc(s.footer)}">
+   <h3>Billing</h3>
+   <div class="f2"><div><label>GST % (0 = no GST on bill)</label><input id="sGst" type="number" step="0.5" value="${s.gst}"></div>
+   <div><label>Show as CGST + SGST</label><select id="sSplit"><option value="1" ${s.gstSplit?'selected':''}>Yes</option><option value="0" ${s.gstSplit?'':'selected'}>No (single GST line)</option></select></div>
+   <div><label>Number of tables</label><input id="sTables" type="number" min="1" max="60" value="${s.tables}"></div>
+   <div><label>Bill number prefix</label><input id="sPrefix" value="${esc(s.prefix)}"></div>
+   <div><label>Owner PIN</label><input id="sPin" value="${esc(s.pin)}"></div></div>
+   <button class="btn" style="margin-top:14px;width:100%" onclick="saveSettings()">Save settings</button></div>
+
+  <div class="card"><div class="row"><h3 class="sp" style="margin:0">Menu & prices (${S.menu.length} items)</h3><button class="btn sm" onclick="editItem()">+ Add item</button></div>
+   <small style="color:var(--mut)">Price changes apply to new orders only. Old bills keep the price at which they were billed.</small>
+   ${Object.keys(byCat).map(c=>`<div class="catblock" style="--cc:${catColor(c)}"><span class="ribbon" style="background:${catColor(c)}">${esc(c)}</span></div><table>${byCat[c].map(m=>`<tr style="${m.avail?'':'opacity:.45'}"><td><i class="vg ${m.veg?'':'nv'}"></i>${esc(m.name)}</td><td class="r">${money(m.price)}</td>
+     <td class="r" style="white-space:nowrap"><button class="btn sec sm" onclick="toggleAvail('${m.id}')">${m.avail?'In stock':'Out'}</button> <button class="btn sec sm" onclick="editItem('${m.id}')">Edit</button></td></tr>`).join('')}</table>`).join('')}</div>
+
+  ${syncCardHTML()}
+  <div class="card"><h3 style="margin-top:0">Data & backup</h3>
+   <small style="color:var(--mut)">Data is saved in this browser on this device. Take a backup regularly.</small>
+   <div class="row" style="margin-top:10px"><button class="btn" onclick="backup()">⬇ Backup (JSON)</button><button class="btn sec" onclick="$('restoreFile').click()">⬆ Restore</button>
+   <button class="btn red" onclick="clearBills()">Delete all bills</button></div></div>`;
+}
+function saveSettings(){
+  const s=S.settings,n=+$('sTables').value||10;
+  const busyHigh=Object.keys(S.orders).some(k=>k[0]==='T'&&+k.slice(1)>n&&S.orders[k].items.length);
+  if(busyHigh){toast('Close open orders on tables above '+n+' first');return}
+  Object.assign(s,{name:$('sName').value.trim()||'Dil Dosti Cafe',tagline:$('sTag').value.trim(),address:$('sAddr').value.trim(),phone:$('sPhone').value.trim(),gstin:$('sGstin').value.trim(),
+    footer:$('sFooter').value.trim(),gst:+$('sGst').value||0,gstSplit:$('sSplit').value==='1',tables:n,prefix:$('sPrefix').value.trim()||'DDC',pin:$('sPin').value.trim()||'1234'});
+  save();setHeader();toast('Settings saved ✔');
+}
+function editItem(id){
+  const m=id?S.menu.find(x=>x.id===id):{name:'',cat:cats()[0]||'',price:'',veg:true};
+  showModal(`<h2>${id?'Edit':'Add'} item</h2>
+   <label>Item name</label><input id="iName" value="${esc(m.name)}">
+   <label>Category</label><input id="iCat" list="catList" value="${esc(m.cat)}"><datalist id="catList">${cats().map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+   <div class="f2"><div><label>Price ₹</label><input id="iPrice" type="number" step="0.5" value="${m.price}"></div>
+   <div><label>Type</label><select id="iVeg"><option value="1" ${m.veg?'selected':''}>Veg</option><option value="0" ${m.veg?'':'selected'}>Non-veg</option></select></div></div>
+   <div class="row" style="margin-top:16px">${id?`<button class="btn red" onclick="delItem('${id}')">Delete</button>`:''}<span class="sp"></span><button class="btn sec" onclick="closeModal()">Cancel</button><button class="btn" onclick="saveItem('${id||''}')">Save</button></div>`);
+}
+function saveItem(id){
+  const name=$('iName').value.trim(),cat=$('iCat').value.trim()||'Others',price=+$('iPrice').value,veg=$('iVeg').value==='1';
+  if(!name||!(price>=0)||$('iPrice').value===''){toast('Enter name and price');return}
+  if(id){Object.assign(S.menu.find(x=>x.id===id),{name,cat,price,veg})}else{const same=S.menu.filter(x=>x.cat===cat),ord=same.length?Math.max(...same.map(x=>x.ord||0))+0.01:Math.max(0,...S.menu.map(x=>x.ord||0))+1;S.menu.push({id:uid(),name,cat,price,veg,avail:true,ord});S.menu.sort((a,b)=>a.ord-b.ord)}
+  save();closeModal();renderSettings();toast('Menu updated ✔');
+}
+function delItem(id){if(!confirm('Delete this item from menu?'))return;S.menu=S.menu.filter(x=>x.id!==id);save();closeModal();renderSettings()}
+function toggleAvail(id){const m=S.menu.find(x=>x.id===id);m.avail=!m.avail;save();renderSettings()}
+function backup(){dl('cafe_backup_'+dKey(new Date())+'.json',JSON.stringify(S,null,1),'application/json')}
+function restore(e){
+  const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.settings||!d.menu)throw 0;if(!confirm('Replace all current data with this backup?'))return;S=d;save();renderSettings();toast('Backup restored ✔')}catch(x){toast('Invalid backup file')}};
+  rd.readAsText(f);e.target.value='';
+}
+function clearBills(){if(!confirm('Delete ALL settled bills and reports? Take a backup first.'))return;if(prompt('Type DELETE to confirm')!=='DELETE')return;S.bills=[];S.voids=[];S.billSeq=0;save();toast('Bills cleared')}
+
+/* ================= SYNC BETWEEN PHONES (Firebase) =================
+   Off until a Firebase config / sync code is entered in Settings.
+   Every save() pushes only the parts that changed; every change made
+   on another phone arrives here instantly and refreshes the screen. */
+const SYNC_LS='dilDostiSyncCfg',ROOT='ddc_sync';
+const SY={on:false,ready:false,connected:false,R:null,last:{},dev:''};
+const RULES=`{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "${ROOT}": { ".read": true, ".write": true }
+  }
+}`;
+const dbKey=s=>String(s).replace(/[.#$\[\]\/]/g,'_');
+const J=v=>JSON.stringify(v);
+const clean=v=>JSON.parse(J(v));
+function deviceTag(){let d=localStorage.getItem('dilDostiDev');if(!d){d=Math.random().toString(36).slice(2,4).toUpperCase();try{localStorage.setItem('dilDostiDev',d)}catch(e){}}return d}
+
+/* every syncable piece of data -> its database path */
+function syncPaths(){
+  const p={settings:S.settings,menu:{}};
+  S.menu.forEach(m=>p.menu[m.id]=m);
+  for(const k in S.orders)if(S.orders[k].items&&S.orders[k].items.length||S.orders[k].billNo)p['orders/'+k]=S.orders[k];
+  S.bills.forEach(b=>p['bills/'+dbKey(b.no)]=b);
+  S.voids.forEach(v=>p['voids/'+dbKey(v.id||(v.ts+'_'+v.name))]=v);
+  return p;
+}
+function pushSync(){
+  if(!SY.on||!SY.ready)return;
+  const cur=syncPaths(),up={};
+  for(const k in cur){const j=J(cur[k]);if(SY.last[k]!==j){up[k]=clean(cur[k]);SY.last[k]=j}}
+  for(const k in SY.last)if(!(k in cur)){up[k]=null;delete SY.last[k]}
+  if(Object.keys(up).length)SY.R.update(up).catch(e=>toast('⚠ Sync failed: '+e.message));
+}
+function markSynced(){const cur=syncPaths();SY.last={};for(const k in cur)SY.last[k]=J(cur[k])}
+
+/* bill / parcel numbers must never repeat across phones */
+function nextSeq(name){
+  const localNext=()=>{S[name]=(S[name]||0)+1;saveLocal();return S[name]};
+  if(!SY.on||!SY.ready||!SY.connected)return Promise.resolve(localNext());
+  return Promise.race([
+    SY.R.child('counters/'+name).transaction(n=>Math.max(n||0,S[name]||0)+1).then(r=>{if(!r.committed)throw 0;S[name]=r.snapshot.val();saveLocal();return S[name]}),
+    new Promise((_,rej)=>setTimeout(rej,6000))
+  ]).catch(()=>{toast('Internet slow – number made on this phone');return localNext()});
+}
+
+/* normalise data coming back from Firebase (it drops empty lists) */
+function normOrder(o){o=o||{};let it=o.items;it=Array.isArray(it)?it.filter(Boolean):it?Object.values(it):[];o.items=it.map(l=>({note:'',kot:0,...l}));o.disc=o.disc||{t:'%',v:0};return o}
+function normBill(b){b.items=Array.isArray(b.items)?b.items.filter(Boolean):b.items?Object.values(b.items):[];return b}
+
+/* beep */
+let AC=null;
+document.addEventListener('click',()=>{try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume()}catch(e){}},{capture:true});
+function beep(n=2){try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}if(!AC)return;let t=AC.currentTime;for(let i=0;i<n;i++){const o=AC.createOscillator(),g=AC.createGain();o.type='square';o.frequency.value=i%2?660:880;o.connect(g);g.connect(AC.destination);g.gain.setValueAtTime(.22,t);g.gain.exponentialRampToValueAtTime(.001,t+.28);o.start(t);o.stop(t+.28);t+=.38}}
+
+function applyOrders(val){
+  const old=S.orders,nw={};
+  for(const k in(val||{}))nw[k]=normOrder(val[k]);
+  // keep an empty order this phone has just opened
+  if(cur&&!nw[cur]&&old[cur]&&!old[cur].items.length)nw[cur]=old[cur];
+  // alerts for changes made on other phones
+  const sum=(o,f)=>(o&&o.items||[]).reduce((a,l)=>a+(+l[f]||0),0);
+  if(SY.ready)for(const k in nw){const oq=sum(old[k],'qty'),nq=sum(nw[k],'qty'),ok=sum(old[k],'kot'),nk=sum(nw[k],'kot');
+    if(nk>ok){beep(3);toast('🍳 '+tableLabel(k)+' – sent to kitchen ('+(nk-ok)+' item'+(nk-ok>1?'s':'')+')')}
+    else if(nq>oq){beep(1);toast('📝 '+tableLabel(k)+' – new order items')}}
+  const wasCur=cur&&old[cur]&&old[cur].items.length;
+  S.orders=nw;
+  if(wasCur&&!nw[cur]){toast(tableLabel(cur)+' was closed on another phone');closeModal();cur=null;go('tables')}
+}
+function applyRemote(key,val){
+  if(key==='settings'&&val)S.settings=Object.assign(S.settings,val);
+  else if(key==='menu'&&val)S.menu=Object.values(val).filter(Boolean).sort((a,b)=>(a.ord||0)-(b.ord||0));
+  else if(key==='orders')applyOrders(val);
+  else if(key==='bills'){S.bills=Object.values(val||{}).map(normBill).sort((a,b)=>a.ts-b.ts)}
+  else if(key==='voids'){S.voids=Object.values(val||{}).sort((a,b)=>a.ts-b.ts)}
+  else if(key==='counters'&&val){if(val.billSeq>S.billSeq)S.billSeq=val.billSeq;if(val.parcelSeq>S.parcelSeq)S.parcelSeq=val.parcelSeq}
+  markSynced();saveLocal();refreshUI(key);
+}
+function refreshUI(key){
+  setHeader();
+  const on=id=>$('v-'+id).classList.contains('on');
+  if(on('tables'))renderTables();
+  if(on('order')&&cur&&S.orders[cur]){renderCart();if(key==='menu'){renderChips();renderItems()}}
+  if(on('reports')&&(key==='bills'||key==='voids'))renderReports();
+}
+function setPill(){const p=$('syncPill');
+  if(!SY.on){p.className='syncpill on bad';p.textContent='⚠ Not synced';p.onclick=()=>go('settings')}
+  else{p.className='syncpill on '+(SY.connected?'ok':'bad');p.textContent=(SY.connected?'● Synced':'● Offline')+'  🔄';p.onclick=()=>syncNow()}
+  const w=$('syncWarn');if(w)w.style.display=SY.on?'none':'block';
+}
+/* manual refresh: pull everything from the online copy right now */
+function syncNow(quiet){
+  if(quiet===true&&!(SY.on&&SY.ready))return;
+  if(!SY.on||!SY.ready){toast('Sync is not on – open Settings → Sync');return}
+  if(quiet!==true)toast('🔄 Refreshing…');
+  SY.R.once('value').then(s=>{const r=s.val()||{};['settings','menu','orders','counters','bills','voids'].forEach(k=>applyRemote(k,r[k]));if(quiet!==true)toast(SY.connected?'✔ Up to date with all phones':'Offline – showing last saved data')})
+   .catch(e=>toast('⚠ '+e.message));
+}
+
+function startSync(){
+  let c=null;try{c=JSON.parse(localStorage.getItem(SYNC_LS))}catch(e){}
+  if(!c||!c.databaseURL)return;
+  if(typeof firebase==='undefined'){SY.on=true;setPill();toast('No internet – sync will start when you reopen the app online');return}
+  try{if(!firebase.apps.length)firebase.initializeApp(c);SY.R=firebase.database().ref(ROOT)}catch(e){toast('⚠ Sync setup error: '+e.message);return}
+  SY.on=true;SY.dev=deviceTag();setPill();
+  firebase.database().ref('.info/connected').on('value',s=>{SY.connected=!!s.val();setPill()});
+  SY.R.once('value').then(snap=>{
+    const r=snap.val()||{};
+    if(r.settings){ // cafe data already online → online copy wins, local-only bills are added
+      const localBills=S.bills,localVoids=S.voids;
+      applyRemote('settings',r.settings);applyRemote('menu',r.menu);applyRemote('orders',r.orders);
+      applyRemote('counters',r.counters);applyRemote('bills',r.bills);applyRemote('voids',r.voids);
+      // bills made on this phone before it was synced: add them; if the bill number already
+      // exists online for a different bill, give this phone's copy a suffix so nothing is lost
+      const online={};S.bills.forEach(b=>online[b.no]=b);const have=new Set(Object.keys(online));
+      localBills.forEach(b=>{const o=online[b.no];if(!o)S.bills.push(b);else if(o.ts!==b.ts||o.grand!==b.grand){b.no=b.no+'-'+SY.dev;if(!have.has(b.no))S.bills.push(b)}});
+      S.bills.sort((a,b)=>a.ts-b.ts);
+      const hv=new Set(S.voids.map(v=>v.id||v.ts));localVoids.forEach(v=>{if(!hv.has(v.id||v.ts))S.voids.push(v)});
+      markSynced();
+      for(const b of localBills)if(!have.has(b.no))delete SY.last['bills/'+dbKey(b.no)];
+      for(const v of localVoids)if(!hv.has(v.id||v.ts))delete SY.last['voids/'+dbKey(v.id||(v.ts+'_'+v.name))];
+    }else{SY.last={};SY.R.child('counters').update({billSeq:S.billSeq||0,parcelSeq:S.parcelSeq||0})}
+    SY.ready=true;pushSync();saveLocal();
+    ['settings','menu','orders','bills','voids','counters'].forEach(k=>{let first=true;SY.R.child(k).on('value',s=>{if(first){first=false;return}applyRemote(k,s.val())})});
+    refreshUI();toast(r.settings?'🔄 Synced with other phones ✔':'🔄 Sync started – this phone uploaded the cafe data ✔');
+  }).catch(e=>{toast('⚠ Sync refused: '+e.message+' – check database rules');SY.on=false;setPill()});
+}
+
+/* settings card */
+function syncCode(){let c={};try{c=JSON.parse(localStorage.getItem(SYNC_LS))||{}}catch(e){}return'DDC1:'+btoa(unescape(encodeURIComponent(J(c))))}
+function syncCardHTML(){
+  if(SY.on)return`<div class="card"><h3 style="margin-top:0">🔄 Sync between phones</h3>
+   <p><b style="color:${SY.connected?'var(--free)':'var(--bill)'}">${SY.connected?'● Connected – all phones update live':'● Offline – changes will sync when internet returns'}</b></p>
+   <p class="mut" style="font-size:13px;color:var(--mut)">To add another phone: send it this app file, then send the sync code. On that phone open Settings → Sync → paste the code → Connect.</p>
+   <div class="row"><button class="btn grn" onclick="window.open('https://wa.me/?text='+encodeURIComponent('Dil Dosti Cafe sync code (paste in Settings → Sync):\\n'+syncCode()),'_blank')">💬 Send sync code on WhatsApp</button>
+   <button class="btn sec" onclick="copyText(syncCode())">Copy code</button><button class="btn sec" onclick="stopSync()">Turn off on this phone</button></div></div>`;
+  return`<div class="card"><h3 style="margin-top:0">🔄 Sync between phones (off)</h3>
+   <p style="font-size:13px">Turn this on so every phone (waiters, counter, kitchen) shows the same tables and bills, and refreshes by itself when anyone adds an order.</p>
+   <p style="font-size:13px"><b>Another phone already synced?</b> Paste the sync code it sent you below and tap Connect.</p>
+   <details><summary style="font-size:13px;cursor:pointer;color:var(--brand2)"><b>First phone only – one-time Firebase setup (free)</b></summary>
+    <ol class="steps">
+     <li>Open <b>console.firebase.google.com</b> → <b>Create project</b> → name <code>dil-dosti-cafe</code> → Analytics off.</li>
+     <li><b>Build → Realtime Database → Create database</b> → location <b>Singapore</b> → Start in <b>test mode</b>.</li>
+     <li>Open the <b>Rules</b> tab, replace all text with the rules below → <b>Publish</b>. <button class="btn sec sm" onclick="copyText(RULES)">Copy rules</button></li>
+     <li>⚙️ <b>Project settings → Your apps → &lt;/&gt; Web</b> → name <code>cafe</code> → Register → copy the <code>firebaseConfig</code> block and paste it below.</li>
+    </ol><textarea readonly style="min-height:90px">${RULES}</textarea></details>
+   <label>Sync code or firebaseConfig</label>
+   <textarea id="syncIn" placeholder="DDC1:...   or   const firebaseConfig = { apiKey: ..., databaseURL: ... };"></textarea>
+   <button class="btn" style="width:100%;margin-top:10px" onclick="connectSync()">Connect</button></div>`;
+}
+function connectSync(){
+  const t=$('syncIn').value.trim();let c;
+  try{
+    if(t.startsWith('DDC1:'))c=JSON.parse(decodeURIComponent(escape(atob(t.slice(5)))));
+    else{const m=t.match(/\{[\s\S]*\}/);if(!m)throw new Error('Paste the sync code or the { … } config');c=(new Function('return ('+m[0]+')'))()}
+  }catch(e){toast('⚠ '+(e.message||'Code not readable – copy it again'));return}
+  if(!c||!c.databaseURL||!c.apiKey){toast('⚠ databaseURL / apiKey missing in pasted text');return}
+  if(!confirm('Connect this phone?\nIf the cafe data is already online, it will replace the tables & menu on this phone (bills are kept).'))return;
+  try{localStorage.setItem(SYNC_LS,J(c))}catch(e){}
+  location.reload();
+}
+function stopSync(){if(!confirm('Stop syncing on this phone? (Online data stays safe; this phone keeps its own copy.)'))return;localStorage.removeItem(SYNC_LS);location.reload()}
+function copyText(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Copied ✔')).catch(()=>prompt('Copy this:',t))}
+
+/* ================= INIT ================= */
+function tick(){const d=new Date();$('clock').textContent=fmtDT(d);if($('v-tables').classList.contains('on'))renderTables()}
+renderTables();tick();setInterval(tick,30000);
+setPill();startSync();
+if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncNow(true)});
+</script>
+</body>
+</html>
