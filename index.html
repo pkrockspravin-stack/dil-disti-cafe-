@@ -439,7 +439,8 @@ function setDisc(f,v){const o=S.orders[cur];o.disc[f]=f==='v'?(+v||0):v;o.billPr
 async function nextBillNo(){const n=await nextSeq('billSeq');return S.settings.prefix+'-'+new Date().getFullYear()+'-'+String(n).padStart(4,'0')}
 function receiptHTML(b){
   const s=S.settings;
-  return`<div class="c"><b style="font-size:16px">♥ ${esc(s.name).toUpperCase()} ♥</b>${s.tagline?'<br><i>'+esc(s.tagline)+'</i>':''}${s.address?'<br>'+esc(s.address):''}${s.phone?'<br>Ph: '+esc(s.phone):''}${s.gstin?'<br>GSTIN: '+esc(s.gstin):''}</div><hr>
+  const lg=document.querySelector('header .logo');
+  return`<div class="c">${lg?`<img src="${lg.src}" alt="" style="width:26mm;height:26mm;border-radius:50%;display:block;margin:0 auto 2mm">`:''}<b style="font-size:16px">♥ ${esc(s.name).toUpperCase()} ♥</b>${s.tagline?'<br><i>'+esc(s.tagline)+'</i>':''}${s.address?'<br>'+esc(s.address):''}${s.phone?'<br>Ph: '+esc(s.phone):''}${s.gstin?'<br>GSTIN: '+esc(s.gstin):''}</div><hr>
   Bill: ${esc(b.no||'(not settled)')}<br>${esc(b.table)} &nbsp; ${fmtDT(b.ts)}<hr>
   <table><tr><th>Item</th><th class="r">Qty</th><th class="r">Amt</th></tr>
   ${b.items.map(l=>`<tr><td>${esc(l.name)}</td><td class="r">${l.qty}</td><td class="r">${(l.price*l.qty).toFixed(2)}</td></tr>`).join('')}</table><hr>
@@ -571,9 +572,12 @@ function renderSettings(){
 
   ${syncCardHTML()}
   <div class="card"><h3 style="margin-top:0">Data & backup</h3>
-   <small style="color:var(--mut)">Data is saved in this browser on this device. Take a backup regularly.</small>
-   <div class="row" style="margin-top:10px"><button class="btn" onclick="backup()">⬇ Backup (JSON)</button><button class="btn sec" onclick="$('restoreFile').click()">⬆ Restore</button>
-   <button class="btn red" onclick="clearBills()">Delete all bills</button></div></div>`;
+   <small style="color:var(--mut)">Data is saved online and on this phone. Take a backup regularly.</small>
+   <div class="row" style="margin-top:10px"><button class="btn" onclick="backup()">⬇ Backup (JSON)</button><button class="btn sec" onclick="$('restoreFile').click()">⬆ Restore</button></div></div>
+  <div class="card" style="border:2px solid var(--bill)"><h3 style="margin-top:0;color:var(--bill)">🔐 Owner only</h3>
+   <p style="font-size:13px;margin:0 0 10px">These need the <b>Owner PIN</b> (separate from the Settings PIN, so staff cannot use them).${S.settings.ownerPin?'':' <b>No Owner PIN yet</b> – you will create one on first use.'}</p>
+   <div class="row"><button class="btn red" onclick="ownerPin(clearBills)">🧹 Start from zero</button><button class="btn sec" onclick="ownerPin(changeOwnerPin)">🔑 Change Owner PIN</button></div>
+   <p style="font-size:12px;color:var(--mut);margin:8px 0 0">Start from zero deletes all bills, open tables, parcels and reports on <b>all phones</b>, and restarts bill numbers from 0001. Menu, prices and settings are kept.</p></div>`;
 }
 function saveSettings(){
   const s=S.settings,n=+$('sTables').value||10;
@@ -606,7 +610,44 @@ function restore(e){
   rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.settings||!d.menu)throw 0;if(!confirm('Replace all current data with this backup?'))return;S=d;save();renderSettings();toast('Backup restored ✔')}catch(x){toast('Invalid backup file')}};
   rd.readAsText(f);e.target.value='';
 }
-function clearBills(){if(!confirm('Delete ALL settled bills and reports? Take a backup first.'))return;if(prompt('Type DELETE to confirm')!=='DELETE')return;S.bills=[];S.voids=[];S.billSeq=0;save();toast('Bills cleared')}
+function ownerPin(next){
+  const has=!!S.settings.ownerPin;
+  showModal(`<h2>🔐 ${has?'Owner PIN':'Create Owner PIN'}</h2>
+   ${has?'':'<p style="font-size:13px">Choose a PIN only the owner knows (4–8 digits). It works on all phones.</p>'}
+   <input id="opIn" type="password" inputmode="numeric" placeholder="${has?'Enter Owner PIN':'New Owner PIN'}">
+   ${has?'':'<input id="opIn2" type="password" inputmode="numeric" placeholder="Repeat Owner PIN" style="margin-top:8px">'}
+   <div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn sec" onclick="closeModal()">Cancel</button><button class="btn" id="opGo">OK</button></div>`);
+  $('opGo').onclick=()=>{
+    const a=$('opIn').value.trim();
+    if(has){if(a!==String(S.settings.ownerPin)){toast('Wrong Owner PIN');return}closeModal();next();return}
+    if(!/^\d{4,8}$/.test(a)){toast('Use 4–8 digits');return}
+    if(a!==$('opIn2').value.trim()){toast('PINs do not match');return}
+    if(a===String(S.settings.pin)){toast('Use a different PIN from the Settings PIN');return}
+    S.settings.ownerPin=a;save();closeModal();toast('Owner PIN created ✔');next();
+  };
+  setTimeout(()=>$('opIn').focus(),50);
+}
+function changeOwnerPin(){
+  showModal(`<h2>🔑 New Owner PIN</h2><input id="np1" type="password" inputmode="numeric" placeholder="New Owner PIN (4–8 digits)">
+   <input id="np2" type="password" inputmode="numeric" placeholder="Repeat new PIN" style="margin-top:8px">
+   <div class="row" style="margin-top:12px"><span class="sp"></span><button class="btn sec" onclick="closeModal()">Cancel</button><button class="btn" id="npGo">Save</button></div>`);
+  $('npGo').onclick=()=>{const a=$('np1').value.trim();
+    if(!/^\d{4,8}$/.test(a)){toast('Use 4–8 digits');return}
+    if(a!==$('np2').value.trim()){toast('PINs do not match');return}
+    if(a===String(S.settings.pin)){toast('Use a different PIN from the Settings PIN');return}
+    S.settings.ownerPin=a;save();closeModal();renderSettings();toast('Owner PIN changed on all phones ✔')};
+}
+function clearBills(){
+  if(!confirm('Start from zero?\n\nThis deletes ALL bills, open tables, parcels and reports'+(SY.on?' on ALL phones':'')+'.\nMenu, prices and settings are kept.\n\nTake a Backup first if you want a copy.'))return;
+  if(prompt('Type DELETE to confirm')!=='DELETE'){toast('Cancelled');return}
+  const resetAt=Date.now();
+  S.orders={};S.bills=[];S.voids=[];S.billSeq=0;S.parcelSeq=0;S.resetAt=resetAt;cur=null;saveLocal();
+  if(SY.on&&SY.ready){
+    SY.R.update({orders:null,bills:null,voids:null,counters:{billSeq:0,parcelSeq:0,resetAt}})
+      .then(()=>{markSynced();toast('🧹 Test data cleared on all phones ✔')}).catch(e=>toast('⚠ '+e.message));
+  }else toast('🧹 Test data cleared ✔');
+  renderSettings();
+}
 
 /* ================= SYNC BETWEEN PHONES (Firebase) =================
    Off until a Firebase config / sync code is entered in Settings.
@@ -683,7 +724,7 @@ function applyRemote(key,val){
   else if(key==='orders')applyOrders(val);
   else if(key==='bills'){S.bills=Object.values(val||{}).map(normBill).sort((a,b)=>a.ts-b.ts)}
   else if(key==='voids'){S.voids=Object.values(val||{}).sort((a,b)=>a.ts-b.ts)}
-  else if(key==='counters'&&val){if(val.billSeq>S.billSeq)S.billSeq=val.billSeq;if(val.parcelSeq>S.parcelSeq)S.parcelSeq=val.parcelSeq}
+  else if(key==='counters'&&val){if(val.resetAt&&val.resetAt!==S.resetAt){S.billSeq=val.billSeq||0;S.parcelSeq=val.parcelSeq||0;S.resetAt=val.resetAt}else{if(val.billSeq>S.billSeq)S.billSeq=val.billSeq;if(val.parcelSeq>S.parcelSeq)S.parcelSeq=val.parcelSeq}}
   markSynced();saveLocal();refreshUI(key);
 }
 function refreshUI(key){
@@ -717,7 +758,8 @@ function startSync(){
   SY.R.once('value').then(snap=>{
     const r=snap.val()||{};
     if(r.settings){ // cafe data already online → online copy wins, local-only bills are added
-      const localBills=S.bills,localVoids=S.voids;
+      const wasReset=r.counters&&r.counters.resetAt&&r.counters.resetAt!==S.resetAt;
+      const localBills=wasReset?[]:S.bills,localVoids=wasReset?[]:S.voids;
       applyRemote('settings',r.settings);applyRemote('menu',r.menu);applyRemote('orders',r.orders);
       applyRemote('counters',r.counters);applyRemote('bills',r.bills);applyRemote('voids',r.voids);
       // bills made on this phone before it was synced: add them; if the bill number already
@@ -743,7 +785,7 @@ function syncCardHTML(){
    <p><b style="color:${SY.connected?'var(--free)':'var(--bill)'}">${SY.connected?'● Connected – all phones update live':'● Offline – changes will sync when internet returns'}</b></p>
    <p class="mut" style="font-size:13px;color:var(--mut)">To add another phone: send it this app file, then send the sync code. On that phone open Settings → Sync → paste the code → Connect.</p>
    <div class="row"><button class="btn grn" onclick="window.open('https://wa.me/?text='+encodeURIComponent('Dil Dosti Cafe sync code (paste in Settings → Sync):\\n'+syncCode()),'_blank')">💬 Send sync code on WhatsApp</button>
-   <button class="btn sec" onclick="copyText(syncCode())">Copy code</button><button class="btn sec" onclick="stopSync()">Turn off on this phone</button></div></div>`;
+   <button class="btn sec" onclick="syncNow()">🔄 Refresh data now</button><button class="btn sec" onclick="copyText(syncCode())">Copy code</button><button class="btn sec" onclick="stopSync()">Turn off on this phone</button></div></div>`;
   return`<div class="card"><h3 style="margin-top:0">🔄 Sync between phones (off)</h3>
    <p style="font-size:13px">Turn this on so every phone (waiters, counter, kitchen) shows the same tables and bills, and refreshes by itself when anyone adds an order.</p>
    <p style="font-size:13px"><b>Another phone already synced?</b> Paste the sync code it sent you below and tap Connect.</p>
