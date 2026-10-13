@@ -1,5 +1,5 @@
 // Dil Dosti Cafe – offline shell. Live data always comes from Firebase.
-const CACHE = 'ddc-sync-v1';
+const CACHE = 'ddc-sync-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
